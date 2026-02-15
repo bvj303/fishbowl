@@ -1,0 +1,97 @@
+:root {
+    --bg: #1a1a2e;
+    --card: #16213e;
+    --accent: #0f3460;
+    --highlight: #e94560;
+    --text: #f0f0f0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    overflow: hidden; /* Prevent scrolling on app-like feel */
+}
+
+.hidden { display: none !important; }
+.screen { padding: 20px; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+/* LANDING */
+#landing-select {
+    height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: 20px; align-items: center;
+}
+button {
+    padding: 15px 30px; font-size: 1.2rem; border: none; border-radius: 8px; cursor: pointer;
+    background: var(--highlight); color: white; font-weight: bold;
+    transition: transform 0.1s;
+}
+button:active { transform: scale(0.95); }
+
+/* HOST VIEW */
+#host-view header { position: absolute; top: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.2); }
+#qr-code { width: 300px; height: 300px; border: 10px solid white; border-radius: 10px; }
+.scoreboard { display: flex; justify-content: space-around; width: 100%; max-width: 800px; margin-bottom: 50px; }
+.score-box h3 { font-size: 2rem; margin: 0; }
+.score-box span { font-size: 4rem; font-weight: bold; }
+.timer-box { font-size: 6rem; color: var(--highlight); width: 200px; }
+#host-actor-name { font-size: 4rem; color: var(--highlight); margin: 10px 0; }
+
+/* PLAYER VIEW */
+input { padding: 15px; font-size: 1.2rem; border-radius: 8px; border: none; margin-bottom: 20px; width: 80%; max-width: 300px; }
+.input-group input { display: block; margin: 10px auto; }
+
+/* GAME CARD FOR MOBILE */
+.card {
+    background: white; color: black; padding: 40px 20px; width: 100%; border-radius: 15px; margin-bottom: 30px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+}
+#card-word { margin: 0; font-size: 3rem; text-transform: uppercase; word-wrap: break-word;}
+
+.controls { display: flex; gap: 10px; width: 100%; }
+.btn-giant { flex: 1; padding: 30px 10px; font-size: 1.5rem; }
+.gotit { background-color: #4CAF50; }
+.skip { background-color: #f44336; }
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+    .score-box h3 { font-size: 1.2rem; }
+    .score-box span { font-size: 2rem; }
+}
+
+/* TIME'S UP ANIMATION */
+@keyframes redFlash {
+    0% { background-color: var(--bg); transform: translate(0, 0); }
+    10% { background-color: #ff0000; transform: translate(-5px, 5px); }
+    20% { background-color: var(--bg); transform: translate(5px, -5px); }
+    30% { background-color: #ff0000; transform: translate(-5px, 5px); }
+    40% { background-color: var(--bg); transform: translate(0, 0); }
+    100% { background-color: var(--bg); transform: translate(0, 0); }
+}
+
+.times-up-flash {
+    animation: redFlash 0.8s ease-in-out;
+}
+
+/* ROSTERS ON TV */
+.roster {
+    margin-top: 15px;
+    font-size: 1.2rem;
+    font-weight: normal;
+    color: #cccccc;
+    line-height: 1.4;
+}
+
+/* Highlight the active actor in the list */
+.actor-highlight {
+    color: #ffffff;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Ensure the scoreboard aligns items to the top so lists can grow down */
+.scoreboard {
+    align-items: flex-start; 
+}

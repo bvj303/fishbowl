@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fishbowl</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="host-view" class="hidden">
+        <header>
+            <h1>FISHBOWL</h1>
+            <div class="round-indicator">Round <span id="host-round-num">1</span>: <span id="host-round-name">Taboo</span></div>
+        </header>
+
+        <div id="host-lobby" class="screen">
+            <div class="qr-container">
+                <img id="qr-code" src="" alt="Scan to Join">
+                <p id="join-url"></p>
+            </div>
+            
+            <div class="player-list-container">
+                <h3>Players Joined</h3>
+                <ul id="host-player-list"></ul>
+            </div>
+
+            <div class="settings-container" style="margin: 20px 0; display: flex; gap: 20px; justify-content: center; align-items: center;">
+                <div class="setting-item">
+                    <label for="setting-timer" style="font-size: 1.2rem;">Timer (sec):</label>
+                    <input type="number" id="setting-timer" value="60" style="width: 60px; padding: 5px; font-size: 1.2rem; text-align: center;">
+                </div>
+                <div class="setting-item">
+                    <label for="setting-words" style="font-size: 1.2rem;">Words/Player:</label>
+                    <input type="number" id="setting-words" value="3" style="width: 60px; padding: 5px; font-size: 1.2rem; text-align: center;">
+                </div>
+            </div>
+
+            <div>
+                <button id="btn-start-submission" onclick="startSubmission()">Start Game</button>
+                <button onclick="resetLobby()" style="background-color: #f44336; margin-left: 10px;">Reset Lobby</button>
+            </div>
+        </div>
+        <div id="host-submission" class="screen hidden">
+            <h2>Waiting for players to submit words...</h2>
+            <div id="submission-progress">0 / 0 Submitted</div>
+        </div>
+
+        <div id="host-game" class="screen hidden">
+            <div class="scoreboard">
+                <div class="score-box team-a">
+                    <h3>Team A</h3>
+                    <span id="score-a">0</span>
+                    <div id="roster-a" class="roster"></div>
+                </div>
+
+                <div class="timer-box">
+                    <span id="host-timer">60</span>
+                </div>
+
+                <div class="score-box team-b">
+                    <h3>Team B</h3>
+                    <span id="score-b">0</span>
+                    <div id="roster-b" class="roster"></div>
+                </div>
+            </div>
+            
+            <div class="current-turn-info">
+                <h2>Current Actor:</h2>
+                <h1 id="host-actor-name">---</h1>
+                <p>Team <span id="host-active-team">A</span> is guessing</p>
+            </div>
+        </div>
+        
+        <div id="host-intermission" class="screen hidden">
+            <h1 id="intermission-msg">Round Over!</h1>
+            <button onclick="startNextRound()">Start Next Round</button>
+        </div>
+    </div>
+    <audio id="sound-buzzer" src="buzzer.mp3" preload="auto"></audio>
+    <div id="player-view" class="hidden">
+        
+        <div id="my-team-badge" class="hidden" style="position: absolute; top: 15px; right: 15px; padding: 8px 15px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; z-index: 100;">
+            Team ?
+        </div>
+        <div id="player-join" class="screen">
+            <h1>Fishbowl</h1>
+            <input type="text" id="player-name" placeholder="Enter your name" maxlength="10">
+            <button onclick="joinGame()">Join Game</button>
+        </div>
+
+        <div id="player-wait" class="screen hidden">
+            <h2>Please Wait</h2>
+            <p id="wait-msg">Waiting for host...</p>
+        </div>
+
+        <div id="player-submit" class="screen hidden">
+            <h3>Add to the Bowl</h3>
+            <p id="submit-instruction">Enter words or phrases.</p>
+            <div id="word-inputs">
+                </div>
+            <button onclick="submitWords()">Ready!</button>
+        </div>
+
+        <div id="player-spectator" class="screen hidden">
+            <div class="status-card">
+                <h3>Current Guesser</h3>
+                <h1 id="spectator-actor">Someone</h1>
+                <div class="spectator-timer" id="spectator-timer">60</div>
+            </div>
+            <p>Watch the TV!</p>
+        </div>
+
+        <div id="player-active" class="screen hidden">
+            <div class="timer-bar" id="active-timer-bar"></div>
+            
+            <div id="pre-start-controls">
+                <h3>Your Turn!</h3>
+                <p>Describe to Team <span id="active-team-indicator">A</span></p>
+                <button class="btn-giant start" onclick="startTurn()">START TIMER</button>
+            </div>
+
+            <div id="game-controls" class="hidden">
+                <div class="card">
+                    <h1 id="card-word">WORD</h1>
+                </div>
+                <div class="controls">
+                    <button class="btn-giant skip" onclick="skipWord()">SKIP</button>
+                    <button class="btn-giant gotit" onclick="gotWord()">GOT IT!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="landing-select">
+        <button onclick="initHost()">Host Game (TV)</button>
+        <button onclick="initPlayer()">Join Game (Phone)</button>
+        <button id="btn-start-submission" onclick="startSubmission()">Start Game</button>
+        <button onclick="resetLobby()" style="background-color: #f44336; margin-left: 10px;">Reset Lobby</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>
