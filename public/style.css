@@ -90,6 +90,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
     margin-top: 16px; padding: 8px; font-size: 0.95rem;
 }
 .btn-link.danger { color: #ff8fa3; }
+.btn-link.inline { margin: 0; padding: 0 4px; font-size: inherit; }
 
 .chip {
     background: var(--panel); border: 1px solid var(--line); color: var(--muted);
@@ -110,6 +111,14 @@ input[type="text"]:focus, select:focus { outline: none; border-color: var(--acce
 input::placeholder { color: #6f7ca0; }
 
 .stack { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.field { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.field-label { color: var(--muted); font-weight: 600; font-size: 0.95rem; }
+.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight: 800; text-align: center; font-size: 1.6rem !important; }
+.code-input::placeholder { letter-spacing: 0.3em; }
+.code-fixed { margin: 0; font-size: 1.1rem; }
+.code-fixed b { color: var(--accent); letter-spacing: 0.08em; }
+#p-code-status { margin: 0; }
+#p-code-status.error { margin: 0; }
 
 /* ---------- Top bar & banners ---------- */
 .topbar {
@@ -117,7 +126,11 @@ input::placeholder { color: #6f7ca0; }
     padding: 12px 20px; padding-top: calc(12px + env(safe-area-inset-top));
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
-.topbar-brand { font-weight: 800; letter-spacing: 0.02em; font-size: 1.1rem; }
+.topbar-brand { font-weight: 800; letter-spacing: 0.02em; font-size: 1.1rem; white-space: nowrap; }
+@media (max-width: 480px) {
+    /* Make room for the room and name chips once a phone is in a game. */
+    #player.in-room .brand-text { display: none; }
+}
 .pill {
     background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
     padding: 6px 16px; font-weight: 700;
@@ -125,7 +138,7 @@ input::placeholder { color: #6f7ca0; }
 
 .me-chip {
     border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: 0.95rem;
-    background: var(--panel); max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    background: var(--panel); max-width: 60vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .me-chip.team-a { background: var(--team-a); color: #2a0b0b; }
 .me-chip.team-b { background: var(--team-b); color: #06213a; }
@@ -133,6 +146,18 @@ input::placeholder { color: #6f7ca0; }
 .conn-banner {
     position: fixed; top: 0; left: 0; right: 0; z-index: 50;
     background: var(--stop); color: #fff; text-align: center; font-weight: 700; padding: 8px;
+    padding-top: calc(8px + env(safe-area-inset-top));
+}
+.host-banner {
+    position: sticky; top: 0; z-index: 49; /* pushes the page down instead of covering the header */
+    background: var(--accent); color: var(--accent-ink); text-align: center; font-weight: 700; padding: 8px;
+    padding-top: calc(8px + env(safe-area-inset-top));
+}
+.topbar-right { display: flex; align-items: center; gap: 8px; min-width: 0; justify-content: flex-end; }
+.room-pill { letter-spacing: 0.08em; font-size: clamp(1rem, 1.6vw, 1.4rem); color: var(--accent); }
+.room-chip {
+    border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: 0.85rem; white-space: nowrap;
+    background: var(--panel); border: 1px solid var(--line); color: var(--accent); letter-spacing: 0.04em;
 }
 .toast {
     position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%);
@@ -227,12 +252,27 @@ input::placeholder { color: #6f7ca0; }
     width: min(100%, 360px); aspect-ratio: 1; background: #fff; border-radius: 12px; padding: 8px; margin: 8px 0 12px;
 }
 .join-url { font-size: clamp(1.2rem, 2vw, 1.6rem); font-weight: 800; color: var(--accent); word-break: break-all; }
+.room-code-label { color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.9rem; }
+.room-code {
+    font-size: clamp(3.5rem, 8vw, 6.5rem); font-weight: 900; letter-spacing: 0.14em; line-height: 1;
+    color: var(--accent); margin: 4px 0 8px; padding-left: 0.14em; /* balance the trailing letter-spacing */
+}
 .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0 20px; text-align: left; }
 .settings label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-weight: 600; }
 
 .game-screen { justify-content: flex-start; gap: 20px; }
 .scorebar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 24px; align-items: center; width: 100%; }
-.score-tile { border-radius: var(--radius); padding: 16px 24px; border: 3px solid transparent; transition: border-color 0.2s, background 0.2s; }
+.score-tile { position: relative; border-radius: var(--radius); padding: 16px 24px; border: 3px solid transparent; transition: border-color 0.2s, background 0.2s; }
+.score-tile .score.bump { animation: bump 0.45s ease-out; }
+@keyframes bump { 40% { transform: scale(1.25); } }
+.plus-one {
+    position: absolute; right: 16px; top: 8px; font-weight: 900; font-size: clamp(1.5rem, 3vw, 2.5rem);
+    animation: float-up 0.9s ease-out forwards; pointer-events: none;
+}
+@keyframes float-up { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-40px); } }
+.fact.wobble { animation: wobble 0.4s ease-in-out; }
+@keyframes wobble { 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+.clock.go { animation: pop 0.35s ease-out; }
 .score-tile .label { font-weight: 800; font-size: clamp(1.1rem, 2vw, 1.6rem); }
 .score-tile .score { font-size: clamp(3rem, 7vw, 6rem); font-weight: 900; line-height: 1; }
 .score-tile.team-a { background: var(--team-a-soft); color: var(--team-a); }
@@ -311,7 +351,7 @@ input::placeholder { color: #6f7ca0; }
 .turn-screen { justify-content: space-between; gap: 16px; position: relative; padding-top: 16px; }
 .turn-top { width: 100%; }
 .timer-track { width: 100%; height: 12px; background: var(--panel); border-radius: 999px; overflow: hidden; }
-.timer-fill { height: 100%; background: var(--go); width: 100%; transition: width 1s linear, background 0.3s; }
+.timer-fill { height: 100%; background: var(--go); width: 100%; transition: background 0.3s; }
 .timer-fill.urgent { background: var(--stop); }
 .turn-meta { display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px; }
 .turn-timer { font-size: 2rem; font-weight: 900; font-variant-numeric: tabular-nums; }

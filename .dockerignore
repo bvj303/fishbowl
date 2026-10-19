@@ -1,0 +1,10 @@
+node_modules
+.git
+test
+*.md
+*.log
+.DS_Store
+Dockerfile
+.dockerignore
+fly.toml
+render.yaml

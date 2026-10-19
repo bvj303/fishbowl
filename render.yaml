@@ -1,0 +1,19 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Rooms live in memory, so run exactly one instance, and use a plan that doesn't sleep
+# (the free plan spins down when idle, which would end running games).
+services:
+  - type: web
+    name: fishbowl
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    numInstances: 1
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: TRUST_PROXY
+        value: "1"
+      # The address phones should open, e.g. https://fishbowl.example.com
+      # (your custom subdomain). Set it in the dashboard when you add the domain.
+      - key: PUBLIC_URL
+        sync: false
