@@ -4,12 +4,15 @@
   "description": "Local multiplayer Fishbowl game",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^4.22.1",
-    "ip": "^1.1.8",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
   }
 }
