@@ -1,18 +1,21 @@
 {
-  "name": "fishbowl-local",
+  "name": "fishbowl",
   "version": "1.0.0",
-  "description": "Local multiplayer Fishbowl game",
+  "description": "Multiplayer Fishbowl party game: one host screen, everyone else on their phone",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test"
+    "test": "node --test test/*.test.js",
+    "test:browser": "node scripts/browser-e2e.js"
   },
   "dependencies": {
+    "compression": "^1.8.2",
     "express": "^4.22.1",
+    "proxy-addr": "^2.0.8",
     "qrcode": "^1.5.4",
-    "socket.io": "^4.8.1"
+    "ws": "^8.22.0"
   },
-  "devDependencies": {
-    "socket.io-client": "^4.8.4"
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -8,10 +8,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Fishbowl</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div id="conn-banner" class="conn-banner hidden">Reconnecting…</div>
+    <div id="host-banner" class="host-banner hidden">Waiting for the host to come back…</div>
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
     <!-- ================= LANDING ================= -->
@@ -22,23 +23,23 @@
             <p class="tagline">The party word game. One screen for the room, a phone for everyone.</p>
 
             <div class="role-grid">
-                <button class="role-card" onclick="chooseRole('host')">
+                <button class="role-card" data-action="createGame">
                     <span class="role-icon">📺</span>
-                    <span class="role-title">Host on this screen</span>
-                    <span class="role-desc">Use the TV or laptop everyone can see. Shows the QR code, scores and timer.</span>
+                    <span class="role-title">Create a game</span>
+                    <span class="role-desc">Use the TV or laptop everyone can see. Shows the room code, scores and timer.</span>
                 </button>
-                <button class="role-card" onclick="chooseRole('player')">
+                <button class="role-card" data-action="joinGame">
                     <span class="role-icon">📱</span>
-                    <span class="role-title">Join as a player</span>
-                    <span class="role-desc">Use your phone. You'll add words and take turns giving clues.</span>
+                    <span class="role-title">Join a game</span>
+                    <span class="role-desc">Use your phone and the 4-letter code on the TV. You'll add words and take turns giving clues.</span>
                 </button>
             </div>
 
             <details class="how-to">
                 <summary>How to play</summary>
                 <ol>
-                    <li>Open this page on a TV or laptop and choose <b>Host</b>.</li>
-                    <li>Everyone scans the QR code with their phone and enters their name.</li>
+                    <li>Open this page on a TV or laptop and choose <b>Create a game</b>.</li>
+                    <li>Everyone scans the QR code with their phone (or types the room code) and enters their name.</li>
                     <li>Each player secretly adds a few words to the bowl — people, movies, places, anything.</li>
                     <li>You're split into two teams. On your turn, your phone shows a word: get your team to guess as many as you can before time runs out.</li>
                     <li>Three rounds, same words each time: <b>Describe it</b>, then <b>Act it out</b>, then <b>One word</b>. Most points wins!</li>
@@ -52,17 +53,29 @@
         <header class="topbar">
             <div class="topbar-brand">🐟 Fishbowl</div>
             <div id="h-round-pill" class="pill hidden"></div>
-            <button id="h-sound" class="chip" onclick="unlockAudio(true)">🔇 Click to enable sound</button>
+            <div class="topbar-right">
+                <div id="h-room-pill" class="pill room-pill hidden"></div>
+                <button id="h-sound" class="chip" data-action="unlockAudio">🔇 Click to enable sound</button>
+            </div>
         </header>
+
+        <section id="h-loading" class="screen host-screen hidden">
+            <div class="big-emoji">🐟</div>
+            <h1 class="big-title">Setting up your game…</h1>
+            <p id="h-loading-error" class="error hidden"></p>
+            <button id="h-loading-retry" class="btn btn-primary hidden" data-action="createGame">Try again</button>
+        </section>
 
         <section id="h-lobby" class="screen host-screen hidden">
             <div class="lobby-grid">
                 <div class="panel join-panel">
                     <h2>Join on your phone</h2>
+                    <div class="room-code-label">Room code</div>
+                    <div id="h-room-code" class="room-code"></div>
                     <img id="qr-code" alt="QR code to join the game">
                     <p class="muted">Scan the code, or open</p>
                     <p id="join-url" class="join-url"></p>
-                    <p class="muted small">Phones must be on the same Wi-Fi as this computer.</p>
+                    <p id="join-hint" class="muted small"></p>
                 </div>
 
                 <div class="panel">
@@ -84,9 +97,9 @@
                         </label>
                     </div>
 
-                    <button id="h-start" class="btn btn-primary btn-block" onclick="hostAction('startSubmission', readSettings())">Everyone's in — start!</button>
+                    <button id="h-start" class="btn btn-primary btn-block" data-action="startSubmission">Everyone's in — start!</button>
                     <p id="h-start-hint" class="muted small"></p>
-                    <button class="btn-link danger" onclick="resetLobby()">Reset lobby</button>
+                    <button class="btn-link danger" data-action="resetLobby">Reset lobby</button>
                 </div>
             </div>
         </section>
@@ -105,58 +118,90 @@
             <div id="h-teams" class="teams-grid"></div>
             <div id="h-ready-round" class="round-card"></div>
             <div class="btn-row">
-                <button class="btn btn-secondary" onclick="hostAction('shuffleTeams')">🔀 Shuffle teams</button>
-                <button class="btn btn-primary" onclick="hostAction('startRound')">Start Round 1 ▶</button>
+                <button class="btn btn-secondary" data-host="shuffleTeams">🔀 Shuffle teams</button>
+                <button class="btn btn-primary" data-host="startRound">Start Round 1 ▶</button>
             </div>
         </section>
 
         <section id="h-game" class="screen host-screen game-screen hidden">
             <div class="scorebar">
-                <div id="h-score-a" class="score-tile team-a"></div>
+                <div id="h-score-a" class="score-tile team-a"><div class="label">Team A</div><div class="score"></div></div>
                 <div id="h-clock" class="clock"></div>
-                <div id="h-score-b" class="score-tile team-b"></div>
+                <div id="h-score-b" class="score-tile team-b"><div class="label">Team B</div><div class="score"></div></div>
             </div>
             <div id="h-stage" class="stage"></div>
             <div id="h-rosters" class="rosters"></div>
             <div class="host-controls">
-                <button id="h-pause" class="btn btn-ghost" onclick="hostAction('togglePause')">⏸ Pause</button>
-                <button class="btn btn-ghost" onclick="skipTurn()">⏭ Skip turn</button>
+                <button id="h-pause" class="btn btn-ghost" data-host="togglePause">⏸ Pause</button>
+                <button class="btn btn-ghost" data-action="skipTurn">⏭ Skip turn</button>
             </div>
         </section>
 
         <section id="h-roundover" class="screen host-screen hidden">
             <div id="h-roundover-body"></div>
-            <button id="h-next-round" class="btn btn-primary" onclick="hostAction('startRound')"></button>
+            <button id="h-next-round" class="btn btn-primary" data-host="startRound"></button>
         </section>
 
         <section id="h-gameover" class="screen host-screen hidden">
             <div id="h-gameover-body"></div>
             <div class="btn-row">
-                <button class="btn btn-primary" onclick="hostAction('playAgain')">Play again (same players)</button>
-                <button class="btn btn-secondary" onclick="resetLobby()">New lobby</button>
+                <button class="btn btn-primary" data-host="playAgain">Play again (same players)</button>
+                <button class="btn btn-secondary" data-action="resetLobby">New lobby</button>
             </div>
         </section>
 
+        <section id="h-ended" class="screen host-screen hidden">
+            <div class="big-emoji">🐟</div>
+            <h1 id="h-ended-title" class="big-title">This game has ended</h1>
+            <p id="h-ended-sub" class="lead muted"></p>
+            <button class="btn btn-primary" data-action="backToStart">Back to the start</button>
+        </section>
+
         <div id="h-timesup" class="timesup hidden"></div>
-        <audio id="sound-buzzer" src="buzzer.mp3" preload="auto"></audio>
+        <audio id="sound-buzzer" src="/buzzer.mp3" preload="auto"></audio>
     </div>
 
     <!-- ================= PLAYER (PHONE) ================= -->
     <div id="player" class="view hidden">
         <header class="topbar topbar-phone">
-            <div class="topbar-brand">🐟 Fishbowl</div>
-            <div id="p-me" class="me-chip hidden"></div>
+            <div class="topbar-brand">🐟 <span class="brand-text">Fishbowl</span></div>
+            <div class="topbar-right">
+                <div id="p-room" class="room-chip hidden"></div>
+                <div id="p-me" class="me-chip hidden"></div>
+            </div>
         </header>
 
         <section id="p-join" class="screen phone-screen hidden">
             <div class="logo">🐟</div>
             <h1 id="p-join-title">Join the game</h1>
-            <p id="p-join-sub" class="muted">Enter the name everyone knows you by.</p>
-            <form class="stack" onsubmit="event.preventDefault(); joinGame();">
-                <input type="text" id="p-name" placeholder="Your name" maxlength="16" autocomplete="nickname" autocapitalize="words" enterkeyhint="go">
+            <p id="p-join-sub" class="muted">Enter the code on the TV and the name everyone knows you by.</p>
+            <form id="p-join-form" class="stack" novalidate>
+                <label id="p-code-row" class="field">
+                    <span class="field-label">Room code</span>
+                    <input type="text" id="p-code" class="code-input" placeholder="ABCD" maxlength="4" autocomplete="off"
+                        autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="next" inputmode="text">
+                </label>
+                <p id="p-code-fixed" class="code-fixed hidden"></p>
+                <p id="p-code-status" class="small muted hidden"></p>
+                <label class="field">
+                    <span class="field-label">Your name</span>
+                    <input type="text" id="p-name" placeholder="Your name" maxlength="16" autocomplete="nickname" autocapitalize="words" enterkeyhint="go">
+                </label>
                 <button type="submit" class="btn btn-primary btn-block">Join</button>
             </form>
             <p id="p-join-error" class="error hidden"></p>
+        </section>
+
+        <section id="p-loading" class="screen phone-screen hidden">
+            <div class="big-emoji">🐟</div>
+            <h1>Joining…</h1>
+        </section>
+
+        <section id="p-ended" class="screen phone-screen hidden">
+            <div class="big-emoji">🐟</div>
+            <h1 id="p-ended-title">This game has ended</h1>
+            <p id="p-ended-sub" class="muted"></p>
+            <button class="btn btn-primary btn-block" data-action="backToStart">Back to the start</button>
         </section>
 
         <section id="p-lobby" class="screen phone-screen hidden">
@@ -164,13 +209,13 @@
             <h1 id="p-lobby-title"></h1>
             <p class="muted">Waiting for the host to start. Start thinking of words — famous people, movies, places, things…</p>
             <ul id="p-lobby-players" class="player-list compact"></ul>
-            <button class="btn-link" onclick="leaveGame()">Not you? Change name</button>
+            <button class="btn-link" data-action="leaveGame">Not you? Change name</button>
         </section>
 
         <section id="p-submit" class="screen phone-screen scroll hidden">
             <h1>Add to the bowl</h1>
             <p id="p-submit-sub" class="muted"></p>
-            <form class="stack" onsubmit="event.preventDefault(); submitWords();">
+            <form id="p-submit-form" class="stack" novalidate>
                 <div id="p-word-inputs" class="stack"></div>
                 <button id="p-submit-btn" type="submit" class="btn btn-primary btn-block">Drop them in the bowl 🐟</button>
             </form>
@@ -187,7 +232,7 @@
             <h1>It's your turn!</h1>
             <p id="p-turn-team" class="lead"></p>
             <div id="p-turn-rule" class="round-card"></div>
-            <button class="btn btn-go btn-block btn-huge" onclick="startTurn()">Start the clock</button>
+            <button class="btn btn-go btn-block btn-huge" data-action="startTurn">Start the clock</button>
             <p class="muted small">You'll have <span id="p-turn-secs"></span> seconds. Hold your phone so nobody else can see it.</p>
         </section>
 
@@ -205,14 +250,13 @@
                 <div id="p-last-word" class="word-hint hidden">Last word in the bowl!</div>
             </div>
             <div class="turn-buttons">
-                <button id="p-skip" class="btn btn-skip" onclick="skipWord()">Skip</button>
-                <button id="p-got" class="btn btn-got" onclick="gotWord()">Got it! ✓</button>
+                <button id="p-skip" class="btn btn-skip" data-action="skipWord">Skip</button>
+                <button id="p-got" class="btn btn-got" data-action="gotWord">Got it! ✓</button>
             </div>
             <div id="p-paused" class="paused-overlay hidden">⏸ Paused by the host</div>
         </section>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="client.js"></script>
+    <script src="/client.js"></script>
 </body>
 </html>
