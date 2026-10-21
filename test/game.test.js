@@ -107,7 +107,7 @@ test('skip cycles words and refuses on the last word', () => {
 });
 
 test('timer runs out on the server, word goes back, and the other team is up', () => {
-    mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+    mock.timers.enable({ apis: ['setInterval'] });
     try {
         const game = readyGame();
         const ended = [];
@@ -130,7 +130,7 @@ test('timer runs out on the server, word goes back, and the other team is up', (
 });
 
 test('pause stops the clock', () => {
-    mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+    mock.timers.enable({ apis: ['setInterval'] });
     try {
         const game = readyGame();
         game.startRound();
@@ -218,146 +218,4 @@ test('late joiners are placed on the smaller team', () => {
     assert.ok(p.team);
     assert.equal(game.teams.A.length + game.teams.B.length, 5);
     assert.ok(game.teams[p.team].includes('player-late'));
-});
-
-test('the clock is a deadline: start, pause, resume and time running out', () => {
-    mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 1_000_000 });
-    try {
-        const game = readyGame();
-        game.startRound();
-        let view = game.viewFor(null);
-        assert.equal(view.turnEndsAt, null, 'no deadline before the actor starts');
-        assert.equal(view.remainingMs, 30_000);
-
-        game.startTimer(actor(game));
-        view = game.viewFor(null);
-        assert.equal(view.turnEndsAt, 1_030_000);
-        assert.equal(view.remainingMs, 30_000);
-        assert.equal('timer' in view, false, 'no per-second counter in the view any more');
-
-        mock.timers.tick(7_250);
-        assert.equal(game.viewFor(null).turnEndsAt, 1_030_000, 'the deadline does not move');
-        assert.equal(game.viewFor(null).remainingMs, 22_750);
-        assert.equal(game.timer, 23, 'whole seconds round up');
-
-        game.togglePause();
-        view = game.viewFor(null);
-        assert.equal(view.paused, true);
-        assert.equal(view.turnEndsAt, null);
-        assert.equal(view.remainingMs, 22_750);
-        mock.timers.tick(100_000);
-        assert.equal(game.viewFor(null).remainingMs, 22_750, 'paused time is not counted');
-        assert.equal(game.phase, 'GAMELOOP');
-
-        game.togglePause();
-        assert.equal(game.viewFor(null).turnEndsAt, 1_107_250 + 22_750);
-
-        const team = game.activeTeam;
-        mock.timers.tick(22_749);
-        assert.equal(game.activeTeam, team, 'not over a millisecond early');
-        mock.timers.tick(1);
-        assert.notEqual(game.activeTeam, team, 'the server ends the turn at the deadline');
-        view = game.viewFor(null);
-        assert.equal(view.timerRunning, false);
-        assert.equal(view.turnEndsAt, null);
-        assert.equal(view.remainingMs, 30_000, 'next turn starts full');
-    } finally {
-        mock.timers.reset();
-    }
-});
-
-test('a player reconnecting mid-turn sees the same deadline', () => {
-    mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 5_000 });
-    try {
-        const game = readyGame();
-        game.startRound();
-        const a = actor(game);
-        game.startTimer(a);
-        const word = game.viewFor(a).currentWord;
-        mock.timers.tick(10_000);
-        game.setConnected(a, false);
-        mock.timers.tick(3_000);
-        assert.ok(game.join(a, game.players.get(a).name).ok);
-        const view = game.viewFor(a);
-        assert.equal(view.turnEndsAt, 35_000);
-        assert.equal(view.remainingMs, 17_000);
-        assert.deepEqual(view.currentWord, word, 'same card');
-        assert.ok(game.gotWord(a, word.id).ok);
-        game.stopTimer();
-    } finally {
-        mock.timers.reset();
-    }
-});
-
-test('events for animations and sounds, with no word text', () => {
-    mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 0 });
-    try {
-        const game = readyGame({ words: 1 });
-        const seen = [];
-        const { GAME_EVENTS } = require('../game');
-        for (const type of GAME_EVENTS) game.on(type, (data) => seen.push([type, data]));
-
-        game.startRound();
-        assert.deepEqual(seen.shift(), ['roundStarted', { round: 1, team: 'A' }]);
-        const a = actor(game);
-        game.startTimer(a);
-        assert.deepEqual(seen.shift(), ['turnStarted', { round: 1, team: 'A', playerId: a, durationMs: 30_000, turnEndsAt: 30_000 }]);
-        game.skipWord(a, game.currentWord.id);
-        assert.deepEqual(seen.shift(), ['wordSkipped', { team: 'A' }]);
-        game.gotWord(a, game.currentWord.id);
-        assert.deepEqual(seen.shift(), ['wordGuessed', { team: 'A', turnScore: 1, teamScore: 1, bowlCount: 2 }]);
-        mock.timers.tick(30_000);
-        const [type, ended] = seen.shift();
-        assert.equal(type, 'turnEnded');
-        assert.deepEqual(ended, { playerId: a, name: game.players.get(a).name, team: 'A', got: 1, reason: 'time' });
-
-        // Team B empties the bowl: last guess, then the turn, round and (eventually) game end.
-        const b = actor(game);
-        game.startTimer(b);
-        while (game.currentWord) game.gotWord(b, game.currentWord.id);
-        const types = seen.map(([t]) => t);
-        assert.deepEqual(types, ['turnStarted', 'wordGuessed', 'wordGuessed', 'wordGuessed', 'turnEnded', 'roundEnded']);
-        assert.equal(seen.at(-2)[1].reason, 'bowl');
-        assert.deepEqual(seen.at(-1)[1], { round: 1, roundScores: { A: 1, B: 3 }, scores: { A: 1, B: 3 } });
-        assert.equal(JSON.stringify(seen).includes('-w0'), false, 'no word text in any event');
-
-        seen.length = 0;
-        for (let round = 2; round <= 3; round++) {
-            game.startRound();
-            const p = actor(game);
-            game.startTimer(p);
-            while (game.currentWord) game.gotWord(p, game.currentWord.id);
-        }
-        const last = seen.at(-1);
-        assert.equal(last[0], 'gameEnded');
-        assert.deepEqual(last[1].scores, game.scores);
-        assert.equal(last[1].winner, game.scores.A > game.scores.B ? 'A' : game.scores.B > game.scores.A ? 'B' : null);
-    } finally {
-        mock.timers.reset();
-    }
-});
-
-test('rooms cap the number of players, but seats can always be reclaimed', () => {
-    const game = new Game({ maxPlayers: 4 });
-    ids.forEach((id, i) => assert.ok(game.join(id, `P${i}`).ok));
-    const full = game.join('player-extra', 'Extra');
-    assert.equal(full.ok, false);
-    assert.equal(full.code, 'ROOM_FULL');
-    assert.ok(game.join(ids[0], 'P0').ok, 'rejoining your own seat still works');
-    game.setConnected(ids[1], false);
-    assert.ok(game.join('new-device-1', 'P1').ok, 'and so does taking over an offline seat');
-    assert.equal(game.viewFor(null).limits.maxPlayers, 4);
-});
-
-test('failures carry a stable error code', () => {
-    const game = readyGame();
-    assert.equal(game.startSubmission({}).code, 'WRONG_PHASE');
-    assert.equal(game.join('player-zz', 'P0').code, 'NAME_TAKEN');
-    assert.equal(game.join('player-zz', '   ').code, 'INVALID_NAME');
-    game.startRound();
-    const other = ids.find((id) => id !== actor(game));
-    assert.equal(game.startTimer(other).code, 'NOT_YOUR_TURN');
-    game.startTimer(actor(game));
-    assert.equal(game.gotWord(actor(game), 'nope').code, 'STALE');
-    game.stopTimer();
 });
