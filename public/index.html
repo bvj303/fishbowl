@@ -82,7 +82,17 @@
                                 <option>5</option><option>6</option>
                             </select>
                         </label>
+                        <label>Words come from
+                            <select id="set-source" onchange="updateSettingsHint()">
+                                <option value="players" selected>Players write</option>
+                                <option value="generated">Generated 🎲</option>
+                            </select>
+                        </label>
+                        <label>Theme
+                            <select id="set-theme" onchange="updateSettingsHint()"></select>
+                        </label>
                     </div>
+                    <p id="set-hint" class="muted settings-hint"></p>
 
                     <button id="h-start" class="btn btn-primary btn-block" onclick="hostAction('startSubmission', readSettings())">Everyone's in — start!</button>
                     <p id="h-start-hint" class="muted small"></p>
@@ -111,6 +121,7 @@
         </section>
 
         <section id="h-game" class="screen host-screen game-screen hidden">
+            <div class="time-bar"><div id="h-timebar" class="time-fill"></div></div>
             <div class="scorebar">
                 <div id="h-score-a" class="score-tile team-a"></div>
                 <div id="h-clock" class="clock"></div>
@@ -172,10 +183,11 @@
             <p id="p-submit-sub" class="muted"></p>
             <form class="stack" onsubmit="event.preventDefault(); submitWords();">
                 <div id="p-word-inputs" class="stack"></div>
+                <button id="p-fill-btn" type="button" class="btn btn-secondary btn-block" onclick="fillEmpty()">🎲 Suggest words for me</button>
                 <button id="p-submit-btn" type="submit" class="btn btn-primary btn-block">Drop them in the bowl 🐟</button>
             </form>
             <p id="p-submit-error" class="error hidden"></p>
-            <p class="muted small">Pick things most people in the room would know. Nobody else will see your words until they're drawn.</p>
+            <p id="p-submit-note" class="muted small">Pick things most people in the room would know. Nobody else will see your words until they're drawn. Stuck? Tap 🎲 for an idea.</p>
         </section>
 
         <section id="p-info" class="screen phone-screen hidden">
@@ -202,6 +214,7 @@
             <div class="word-card">
                 <div id="p-round-hint" class="word-hint"></div>
                 <div id="p-word" class="word"></div>
+                <div id="p-def" class="word-def hidden"></div>
                 <div id="p-last-word" class="word-hint hidden">Last word in the bowl!</div>
             </div>
             <div class="turn-buttons">

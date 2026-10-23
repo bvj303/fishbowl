@@ -342,6 +342,95 @@ input::placeholder { color: #6f7ca0; }
 .final-score .team-b { background: var(--team-b-soft); color: var(--team-b); }
 .final-score .n { font-size: 2.6rem; line-height: 1; }
 
+/* ---------- Word suggestions & definitions ---------- */
+.word-input-block { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.word-input-row input { padding-right: 56px; }
+.dice-btn {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 44px; border: 0; border-radius: 10px; background: var(--panel-2); font-size: 1.3rem; padding: 0;
+}
+.dice-btn:active { transform: translateY(-50%) scale(0.92); }
+.word-def { color: var(--muted); font-size: 0.95rem; padding: 0 4px; }
+.word-card .word-def { color: #555; font-size: 1.05rem; font-weight: 500; text-align: center; margin-top: 14px; max-width: 28ch; text-transform: none; }
+.settings-hint { grid-column: 1 / -1; text-align: left; margin: -8px 0 16px; }
+.settings-hint.adult { color: #ffb4c2; }
+
+/* ---------- HOST: sized for reading from across the room ---------- */
+/* Every rem on the host screen scales with the display, so a 1080p TV gets roughly 1.8x
+   the phone sizes. The min() keeps it sane on a laptop and on an ultrawide. */
+html.tv { font-size: clamp(16px, min(1.4vw, 2.3vh), 52px); }
+.tv #host { --muted: #cbd3ea; --panel: #1f2d52; --panel-2: #2b3b6b; --line: #43578d; }
+.tv #host .topbar { padding: 1.2vh 3.5vw; }
+.tv #host .topbar-brand { font-size: 1.6rem; }
+.tv #host .pill { font-size: 1.25rem; padding: 0.35em 1.1em; }
+.tv #host .chip { font-size: 1rem; }
+.tv .host-screen { max-width: none; padding: 2.5vh 3.5vw; }
+.tv .big-title { font-size: clamp(2.2rem, 4vw, 4.5rem); }
+.tv .lead { font-size: 1.5rem; }
+.tv .small { font-size: 1rem; }
+.tv .btn { font-size: 1.4rem; padding: 0.6em 1.6em; min-height: 0; }
+.tv .btn-ghost { font-size: 1.1rem; }
+
+.tv .lobby-grid { gap: 3vw; }
+@media (min-width: 900px) { .tv .lobby-grid { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); } }
+.tv .join-panel img { width: min(100%, 38vh); }
+.tv .join-url { font-size: clamp(1.5rem, 2.6vw, 3rem); }
+.tv .panel { padding: 1rem 1.5rem; }
+.tv .panel h2 { font-size: 1.9rem; margin-bottom: 0.3em; }
+.tv .player-list { gap: 0.5rem; margin-bottom: 0.6rem; }
+.tv .btn-link { margin-top: 0.3rem; }
+.tv .lobby-grid .muted.small { margin-bottom: 0.3rem; }
+.tv .player-list li { font-size: 1.4rem; padding: 0.4em 0.5em 0.4em 1em; }
+.tv .player-list li.no-x { padding-right: 1em; }
+.tv .x-btn { width: 1.7rem; height: 1.7rem; line-height: 1.7rem; font-size: 1rem; }
+.tv .settings { gap: 1rem 1.4rem; grid-template-columns: repeat(12, 1fr); }
+.tv .settings label { grid-column: span 6; }
+.tv .settings label:nth-child(3) { grid-column: span 5; }
+.tv .settings label:nth-child(4) { grid-column: span 7; }
+.tv .settings label { font-size: 1.1rem; }
+.tv input[type="text"], .tv select { font-size: 1.3rem; padding: 0.5em 0.7em; }
+.tv .settings-hint { font-size: 1rem; }
+.tv .settings { margin-bottom: 0.8rem; }
+
+.tv .team-card h2 { font-size: 2.2rem; }
+.tv .team-card ul { font-size: 1.7rem; }
+.tv .team-card li { padding: 0; margin: 0.15em 0; }
+.tv .teams-grid { max-width: none; gap: 3vw; }
+.tv .round-card { max-width: 60rem; }
+.tv .round-card .round-label { font-size: 1.1rem; }
+.tv .round-card { margin: 0.8rem auto; padding: 0.8rem 1.4rem; }
+.tv .round-card .round-name { font-size: 2.3rem; }
+.tv .round-card .round-rule { font-size: 1.35rem; }
+
+.tv .progress { max-width: 60rem; height: 1.6rem; }
+
+/* Game screen: a draining bar across the top is readable from anywhere in the room. */
+.time-bar { position: fixed; top: 0; left: 0; right: 0; height: 1.4vh; background: rgba(255, 255, 255, 0.08); z-index: 5; }
+.time-fill { height: 100%; width: 100%; transition: width 1s linear, background 0.3s; background: var(--accent); }
+.time-fill.team-a { background: var(--team-a); }
+.time-fill.team-b { background: var(--team-b); }
+.time-fill.urgent { background: var(--stop); }
+.game-screen.glow-a { background: radial-gradient(ellipse at 50% 35%, rgba(255, 107, 107, 0.16), transparent 62%); }
+.game-screen.glow-b { background: radial-gradient(ellipse at 50% 35%, rgba(77, 171, 247, 0.16), transparent 62%); }
+
+.tv .scorebar { gap: 3vw; }
+.tv .score-tile { padding: 0.4rem 1.6rem; border-width: 0.3rem; }
+.tv .game-screen { gap: 1.2vh; }
+.tv .score-tile .label { font-size: 1.7rem; }
+.tv .score-tile .score { font-size: min(9vw, 13vh); }
+.tv .clock { font-size: min(15vw, 19vh); }
+.tv .stage .now { font-size: 1.8rem; }
+.tv .stage .actor { font-size: min(10vw, 14vh); }
+.tv .stage .status { font-size: 2rem; }
+.tv .stage .fact { font-size: 1.4rem; padding: 0.4em 1.1em; }
+.tv .roster span { font-size: 1.4rem; padding: 0.3em 0.9em; }
+.tv .host-controls { opacity: 0.85; }
+
+.tv .result-scores .score-tile { min-width: 13rem; }
+.tv .breakdown { font-size: 1.6rem; }
+.tv .timesup .big { font-size: clamp(5rem, 14vw, 14rem); }
+.tv .timesup .sub { font-size: clamp(2rem, 3.5vw, 4rem); }
+
 /* ---------- Small screens ---------- */
 @media (max-width: 700px) {
     .teams-grid { grid-template-columns: 1fr; }
@@ -350,6 +439,8 @@ input::placeholder { color: #6f7ca0; }
     .rosters { grid-template-columns: 1fr; }
     .roster.team-b { justify-content: flex-start; }
     .settings { grid-template-columns: 1fr; }
+    .tv .settings { grid-template-columns: 1fr; }
+    .tv .settings label, .tv .settings label:nth-child(n) { grid-column: auto; }
     #host .topbar { padding-left: 16px; padding-right: 16px; }
 }
 
