@@ -104,6 +104,7 @@ function createServer() {
             return { ok: true };
         });
         on('submitWords', (words) => game.submitWords(socket.data.playerId, words));
+        on('suggestWord', (opts) => game.suggestWord(socket.data.playerId, opts));
         on('startTimer', () => game.startTimer(socket.data.playerId));
         on('gotWord', (wordId) => game.gotWord(socket.data.playerId, wordId));
         on('skipWord', (wordId) => game.skipWord(socket.data.playerId, wordId));

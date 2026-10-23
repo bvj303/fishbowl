@@ -92,6 +92,8 @@ document.addEventListener('visibilitychange', keepAwake);
 // ---------- ROLE SELECTION ----------
 function chooseRole(newRole) {
     role = newRole;
+    // The host screen is sized for a TV across the room (see the .tv rules in style.css).
+    document.documentElement.classList.toggle('tv', newRole === 'host');
     // Put the role in the URL so a refresh lands back on the same screen.
     history.replaceState(null, '', newRole === 'host' ? '?host' : '?join');
     show('landing', false);
@@ -157,7 +159,38 @@ async function hostAction(event, payload) {
 }
 
 function readSettings() {
-    return { timer: $('set-timer').value, words: $('set-words').value };
+    return {
+        timer: $('set-timer').value,
+        words: $('set-words').value,
+        source: $('set-source').value,
+        theme: $('set-theme').value,
+    };
+}
+
+const themeById = (id) => (state.themes || []).find((t) => t.id === id);
+const themeLabel = (t) => `${t.emoji} ${t.name}`;
+
+function fillThemeSelect() {
+    const select = $('set-theme');
+    if (select.options.length || !state.themes) return;
+    select.innerHTML = state.themes.map((t) =>
+        `<option value="${escapeHtml(t.id)}">${escapeHtml(themeLabel(t))}</option>`).join('');
+    select.value = state.config.theme;
+}
+
+// Explains what the current word settings will do.
+function updateSettingsHint() {
+    const theme = themeById($('set-theme').value);
+    if (!theme) return;
+    const generated = $('set-source').value === 'generated';
+    const total = state.players.length * $('set-words').value;
+    const lines = [theme.blurb];
+    lines.push(generated
+        ? `We'll pick ${total || 'a bowl of'} words, so nobody has to type.`
+        : 'Phones get a 🎲 button for ideas.');
+    const hint = $('set-hint');
+    hint.textContent = lines.join(' ');
+    hint.classList.toggle('adult', theme.adult);
 }
 
 function resetLobby() {
@@ -234,6 +267,8 @@ function renderHostLobby() {
     $('h-lobby-players').innerHTML = s.players.length
         ? s.players.map((p) => hostPlayerChip(p)).join('')
         : '<li class="empty">Nobody yet — scan the code to join!</li>';
+    fillThemeSelect();
+    updateSettingsHint();
     const enough = s.players.length >= min;
     $('h-start').disabled = !enough;
     $('h-start-hint').textContent = enough
@@ -261,8 +296,10 @@ function teamCards() {
 
 function renderHostReady() {
     $('h-teams').innerHTML = teamCards();
+    const theme = themeById(state.config.theme);
+    const source = state.config.wordSource === 'generated' && theme ? ` · ${escapeHtml(themeLabel(theme))}` : '';
     $('h-ready-round').innerHTML = roundCard(1) +
-        `<p class="muted small">${plural(state.deckCount, 'word')} in the bowl · ${state.config.timerDuration} seconds per turn</p>`;
+        `<p class="muted small">${plural(state.deckCount, 'word')} in the bowl${source} · ${state.config.timerDuration} seconds per turn</p>`;
 }
 
 function renderHostGame() {
@@ -275,6 +312,11 @@ function renderHostGame() {
         el.classList.toggle('active', s.activeTeam === t);
         el.innerHTML = `<div class="label">${teamLabel(t)}</div><div class="score">${s.scores[t]}</div>`;
     }
+
+    $('h-game').className = `screen host-screen game-screen glow-${s.activeTeam.toLowerCase()}`;
+    const bar = $('h-timebar');
+    bar.style.width = `${(s.timer / s.config.timerDuration) * 100}%`;
+    bar.className = 'time-fill ' + (urgent ? 'urgent' : teamClass(s.activeTeam));
 
     const clock = $('h-clock');
     clock.textContent = s.timer;
@@ -394,11 +436,60 @@ function renderWordInputs(count) {
     wordInputsKey = key;
     const examples = ['Taylor Swift', 'The Eiffel Tower', 'Jurassic Park', 'Brushing your teeth', 'Batman', 'Pizza', 'Grandma', 'The Moon'];
     $('p-word-inputs').innerHTML = Array.from({ length: count }, (_, i) => `
-        <div class="word-input-row"><span class="num">${i + 1}</span>
-        <input type="text" class="word-input" maxlength="${state.limits.wordLength}" autocomplete="off" autocapitalize="sentences"
-            placeholder="e.g. ${examples[i % examples.length]}" enterkeyhint="${i === count - 1 ? 'done' : 'next'}"></div>`).join('');
+        <div class="word-input-block">
+            <div class="word-input-row"><span class="num">${i + 1}</span>
+                <input type="text" class="word-input" maxlength="${state.limits.wordLength}" autocomplete="off" autocapitalize="sentences"
+                    placeholder="e.g. ${examples[i % examples.length]}" enterkeyhint="${i === count - 1 ? 'done' : 'next'}">
+                <button type="button" class="dice-btn" data-dice="${i}" aria-label="Suggest a word for box ${i + 1}">🎲</button></div>
+            <div class="word-def hidden" data-def="${i}"></div>
+        </div>`).join('');
     $('p-submit-btn').disabled = false;
 }
+
+const wordInputs = () => [...document.querySelectorAll('.word-input')];
+
+// Shows (or clears) the quick definition under a word box.
+function setDefinition(index, def) {
+    const el = document.querySelector(`[data-def="${index}"]`);
+    el.textContent = def || '';
+    el.classList.toggle('hidden', !def);
+}
+
+async function suggestFor(index) {
+    const inputs = wordInputs();
+    const exclude = inputs.map((i) => i.value.trim()).filter(Boolean);
+    const res = await send('suggestWord', { exclude });
+    if (!res.ok) {
+        showError('p-submit-error', res.error);
+        return false;
+    }
+    show('p-submit-error', false);
+    inputs[index].value = res.word.text;
+    inputs[index].dataset.suggested = res.word.text;
+    setDefinition(index, res.word.def);
+    return true;
+}
+
+async function fillEmpty() {
+    const btn = $('p-fill-btn');
+    btn.disabled = true;
+    for (const [i, input] of wordInputs().entries()) {
+        if (!input.value.trim() && !(await suggestFor(i))) break;
+    }
+    btn.disabled = false;
+}
+
+document.addEventListener('click', (e) => {
+    const dice = e.target.closest('[data-dice]');
+    if (dice) suggestFor(Number(dice.dataset.dice));
+});
+// Typing over a suggestion removes its definition, since it no longer describes your word.
+document.addEventListener('input', (e) => {
+    const input = e.target.closest('.word-input');
+    if (!input || !input.dataset.suggested || input.value === input.dataset.suggested) return;
+    delete input.dataset.suggested;
+    setDefinition(wordInputs().indexOf(input), null);
+});
 
 async function submitWords() {
     const inputs = [...document.querySelectorAll('.word-input')];
@@ -479,7 +570,9 @@ function renderPlayer() {
 
     if (s.phase === 'SUBMISSION' && !me.hasSubmitted) {
         const n = s.config.wordsPerPlayer;
-        $('p-submit-sub').textContent = `Write ${n} ${n === 1 ? 'word or phrase' : 'words or phrases'} for others to guess.`;
+        const theme = themeById(s.config.theme);
+        $('p-submit-sub').textContent = `Write ${n} ${n === 1 ? 'word or phrase' : 'words or phrases'} for others to guess.` +
+            (theme ? ` Theme: ${themeLabel(theme)}${theme.adult ? ' (18+)' : ''}.` : '');
         renderWordInputs(s.config.wordsPerPlayer);
         return showOnly(screens, 'p-submit');
     }
@@ -516,6 +609,8 @@ function renderTurn() {
         const wordEl = $('p-word');
         wordEl.textContent = s.currentWord.text;
         wordEl.classList.toggle('long', s.currentWord.text.length > 18);
+        $('p-def').textContent = s.currentWord.def || '';
+        show('p-def', !!s.currentWord.def);
         if (pendingWordId !== s.currentWord.id) {
             pendingWordId = null;
             setTurnButtonsDisabled(false);

@@ -2,6 +2,7 @@
 // these methods and listens for 'change', 'tick' and 'turnEnded' events.
 const { EventEmitter } = require('events');
 const crypto = require('crypto');
+const { DEFAULT_THEME, isTheme, publicThemes, pickWords, lookupDef } = require('./words');
 
 const ROUNDS = [
     { name: 'Describe It', rule: 'Say anything except the word itself. No spelling, no "rhymes with".' },
@@ -16,6 +17,7 @@ const LIMITS = {
     timer: { min: 15, max: 180, default: 60 },
     words: { min: 1, max: 8, default: 3 },
 };
+const WORD_SOURCES = ['players', 'generated'];
 
 const shuffle = (array) => {
     for (let i = array.length - 1; i > 0; i--) {
@@ -40,7 +42,12 @@ const fail = (error) => ({ ok: false, error });
 class Game extends EventEmitter {
     constructor() {
         super();
-        this.config = { timerDuration: LIMITS.timer.default, wordsPerPlayer: LIMITS.words.default };
+        this.config = {
+            timerDuration: LIMITS.timer.default,
+            wordsPerPlayer: LIMITS.words.default,
+            wordSource: 'players', // 'players' type their own, or 'generated' from the word bank
+            theme: DEFAULT_THEME,
+        };
         this.timerInterval = null;
         this.reset();
     }
@@ -177,10 +184,40 @@ class Game extends EventEmitter {
         }
         this.config.timerDuration = clampInt(settings.timer, LIMITS.timer);
         this.config.wordsPerPlayer = clampInt(settings.words, LIMITS.words);
+        this.config.wordSource = WORD_SOURCES.includes(settings.source) ? settings.source : 'players';
+        this.config.theme = isTheme(settings.theme) ? settings.theme : DEFAULT_THEME;
         this.timer = this.config.timerDuration;
+        if (this.config.wordSource === 'generated') {
+            this.generateDeck();
+            return ok();
+        }
         this.phase = 'SUBMISSION';
         this.changed();
         return ok();
+    }
+
+    // Fills the bowl from the word bank so nobody has to type anything.
+    generateDeck() {
+        const count = this.players.size * this.config.wordsPerPlayer;
+        this.deck = pickWords(this.config.theme, count).map(({ text, def }) => ({
+            id: crypto.randomUUID(), text, def, by: null,
+        }));
+        for (const p of this.players.values()) p.hasSubmitted = true;
+        this.assignTeams();
+    }
+
+    // One suggested word (with its definition) for a player who is stuck.
+    // `exclude` holds what they've already typed so they don't get duplicates.
+    suggestWord(playerId, { exclude } = {}) {
+        const player = this.players.get(playerId);
+        if (!player) return fail('Join the game first.');
+        if (this.phase !== 'SUBMISSION' || player.hasSubmitted) return fail('Word entry is closed.');
+        const skip = new Set(this.deck.map((w) => w.text.toLowerCase()));
+        for (const text of Array.isArray(exclude) ? exclude.slice(0, 20) : []) {
+            skip.add(cleanText(text, LIMITS.wordLength).toLowerCase());
+        }
+        const [word] = pickWords(this.config.theme, 1, skip);
+        return word ? ok({ word }) : fail('Out of ideas! Type your own.');
     }
 
     submitWords(playerId, rawWords) {
@@ -195,7 +232,7 @@ class Game extends EventEmitter {
             return fail(`Please fill in all ${this.config.wordsPerPlayer} words.`);
         }
         for (const text of words) {
-            this.deck.push({ id: crypto.randomUUID(), text, by: playerId });
+            this.deck.push({ id: crypto.randomUUID(), text, def: lookupDef(text), by: playerId });
         }
         player.hasSubmitted = true;
         if (!this.checkAllSubmitted()) this.changed();
@@ -425,6 +462,7 @@ class Game extends EventEmitter {
             scores: this.scores,
             roundScores: this.roundScores,
             config: this.config,
+            themes: publicThemes(),
             limits: LIMITS,
             rounds: ROUNDS,
             round: this.round,
